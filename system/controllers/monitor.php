@@ -102,6 +102,45 @@ switch ($action) {
         }
         die();
 
+    case 'customer':
+        header('Content-Type: application/json');
+        $cid = (int) (isset($routes['2']) ? $routes['2'] : _get('id'));
+        $cust = ORM::for_table('tbl_customers')->find_one($cid);
+        if (!$cust) {
+            echo json_encode(['success' => false, 'message' => Lang::T('Account Not Found')]);
+            die();
+        }
+        $recharges = ORM::for_table('tbl_user_recharges')->where('customer_id', $cid)->where('status', 'on')->find_array();
+        $sessions = [];
+        foreach ($recharges as $rc) {
+            $r = ORM::for_table('tbl_routers')->where('name', $rc['routers'])->where('enabled', 1)->find_one();
+            if (!$r) {
+                continue;
+            }
+            try {
+                $client = Mikrotik::getClient($r['ip_address'], $r['username'], $r['password']);
+                if (!$client) {
+                    continue;
+                }
+                if (strtolower($rc['type']) === 'pppoe') {
+                    $uname = !empty($cust['pppoe_username']) ? $cust['pppoe_username'] : $cust['username'];
+                    $s = Mikrotik::findActivePppoeByUser($client, $uname);
+                    if ($s) {
+                        $sessions[] = ['router' => $r['name'], 'type' => 'PPPoE', 'plan' => $rc['namebp'], 'id' => $s['.id'], 'user' => $s['name'], 'address' => $s['address'], 'mac' => $s['caller-id'], 'uptime' => $s['uptime'], 'bytes_in' => null, 'bytes_out' => null];
+                    }
+                } else {
+                    $s = Mikrotik::findActiveHotspotByUser($client, $cust['username']);
+                    if ($s) {
+                        $sessions[] = ['router' => $r['name'], 'type' => 'Hotspot', 'plan' => $rc['namebp'], 'id' => $s['.id'], 'user' => $s['user'], 'address' => $s['address'], 'mac' => $s['mac-address'], 'uptime' => $s['uptime'], 'bytes_in' => $s['bytes-in'], 'bytes_out' => $s['bytes-out']];
+                    }
+                }
+            } catch (\Throwable $e) {
+                // ignore per-router errors
+            }
+        }
+        echo json_encode(['success' => true, 'online' => count($sessions) > 0, 'sessions' => $sessions]);
+        die();
+
     default:
         $ui->assign('_title', Lang::T('Active Connections'));
         $routers = ORM::for_table('tbl_routers')->where('enabled', 1)->order_by_asc('name')->find_array();

@@ -723,4 +723,32 @@ class Mikrotik
         $req->setArgument('duration', $duration . 's');
         $client->sendSync($req);
     }
+
+    /**
+     * Find a single active Hotspot session for a username (server-side filter).
+     */
+    public static function findActiveHotspotByUser($client, $username)
+    {
+        if (!$client || $username === '') {
+            return null;
+        }
+        $req = new RouterOS\Request('/ip/hotspot/active/print');
+        $req->setQuery(RouterOS\Query::where('user', $username));
+        $rows = self::rows($client->sendSync($req), ['.id', 'user', 'address', 'mac-address', 'uptime', 'bytes-in', 'bytes-out', 'server']);
+        return count($rows) ? $rows[0] : null;
+    }
+
+    /**
+     * Find a single active PPP session for a username (server-side filter).
+     */
+    public static function findActivePppoeByUser($client, $username)
+    {
+        if (!$client || $username === '') {
+            return null;
+        }
+        $req = new RouterOS\Request('/ppp/active/print');
+        $req->setQuery(RouterOS\Query::where('name', $username));
+        $rows = self::rows($client->sendSync($req), ['.id', 'name', 'service', 'address', 'caller-id', 'uptime']);
+        return count($rows) ? $rows[0] : null;
+    }
 }
