@@ -55,6 +55,7 @@
 <script>
     window.POE_CFG = {
         dataUrl: "{Text::url('poe/data')}",
+        statusUrl: "{Text::url('poe/status')}",
         setUrl: "{Text::url('poe/set')}",
         cycleUrl: "{Text::url('poe/cycle')}",
         t: {
@@ -104,13 +105,14 @@
             return;
         }
         body.innerHTML = ports.map(function (p) {
-            return '<tr>' +
-                '<td><b>' + esc(p.name) + '</b>' + (p.comment ? ' <small class="text-muted">' + esc(p.comment) + '</small>' : '') + '</td>' +
+            var nm = esc(p.name);
+            return '<tr data-name="' + nm + '">' +
+                '<td><b>' + nm + '</b>' + (p.comment ? ' <small class="text-muted">' + esc(p.comment) + '</small>' : '') + '</td>' +
                 '<td>' + esc(p['poe-out'] || '-') + '</td>' +
-                '<td>' + statusLabel(p.poe_status) + '</td>' +
-                '<td>' + (p.voltage ? esc(p.voltage) + ' V' : '-') + '</td>' +
-                '<td>' + (p.current ? esc(p.current) + ' mA' : '-') + '</td>' +
-                '<td>' + (p.power ? esc(p.power) + ' W' : '-') + '</td>' +
+                '<td class="poe-st">' + statusLabel('') + '</td>' +
+                '<td class="poe-v">-</td>' +
+                '<td class="poe-c">-</td>' +
+                '<td class="poe-p">-</td>' +
                 '<td><div class="btn-group" role="group">' +
                 modeBtn(p, 'off', cfg.t.off) +
                 modeBtn(p, 'auto-on', cfg.t.auto) +
@@ -119,6 +121,29 @@
                 '<i class="glyphicon glyphicon-refresh"></i> ' + esc(cfg.t.reboot) + '</button></td>' +
                 '</tr>';
         }).join('');
+        loadStatus();
+    }
+    function loadStatus() {
+        var router = curRouter();
+        if (!router) { return; }
+        fetch(cfg.statusUrl + '&router=' + encodeURIComponent(router), { headers: { 'X-CSRF-Token': csrfToken } })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (!d || !d.success || !d.status) { return; }
+                Object.keys(d.status).forEach(function (name) {
+                    var st = d.status[name] || {};
+                    var sel = (window.CSS && CSS.escape) ? CSS.escape(name) : name.replace(/"/g, '\\"');
+                    var row = document.querySelector('#poe-body tr[data-name="' + sel + '"]');
+                    if (!row) { return; }
+                    var stCell = row.querySelector('.poe-st');
+                    if (stCell) { stCell.innerHTML = statusLabel(st['poe-out-status']); }
+                    var v = row.querySelector('.poe-v'); if (v) { v.textContent = st['poe-out-voltage'] ? st['poe-out-voltage'] + ' V' : '-'; }
+                    var c = row.querySelector('.poe-c'); if (c) { c.textContent = st['poe-out-current'] ? st['poe-out-current'] + ' mA' : '-'; }
+                    var pw = row.querySelector('.poe-p'); if (pw) { pw.textContent = st['poe-out-power'] ? st['poe-out-power'] + ' W' : '-'; }
+                });
+                if (d.updated) { document.getElementById('poe-updated').textContent = cfg.t.updated + ': ' + d.updated; }
+            })
+            .catch(function () { /* live readings are optional */ });
     }
     function load() {
         var router = curRouter();

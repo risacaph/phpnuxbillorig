@@ -29,19 +29,30 @@ switch ($action) {
         try {
             $client = Mikrotik::getClient($r['ip_address'], $r['username'], $r['password']);
             $ports = Mikrotik::getPoePorts($client);
+            echo json_encode(['success' => true, 'ports' => $ports, 'updated' => date('Y-m-d H:i:s')]);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        die();
+
+    case 'status':
+        // Live PoE electrical readings (best-effort). Kept on a separate endpoint
+        // from the port list so that the /interface/ethernet/poe/monitor call --
+        // the one piece that can stream rather than return once -- can never block
+        // the port list or the on/off/power-cycle controls.
+        header('Content-Type: application/json');
+        $r = ORM::for_table('tbl_routers')->where('name', _get('router'))->where('enabled', 1)->find_one();
+        if (!$r) {
+            echo json_encode(['success' => false, 'message' => Lang::T('Router not found')]);
+            die();
+        }
+        try {
+            $client = Mikrotik::getClient($r['ip_address'], $r['username'], $r['password']);
             $names = array_map(function ($p) {
                 return $p['name'];
-            }, $ports);
+            }, Mikrotik::getPoePorts($client));
             $status = Mikrotik::getPoeStatus($client, $names);
-            foreach ($ports as &$p) {
-                $st = isset($status[$p['name']]) ? $status[$p['name']] : [];
-                $p['poe_status'] = isset($st['poe-out-status']) ? $st['poe-out-status'] : '';
-                $p['voltage']    = isset($st['poe-out-voltage']) ? $st['poe-out-voltage'] : '';
-                $p['current']    = isset($st['poe-out-current']) ? $st['poe-out-current'] : '';
-                $p['power']      = isset($st['poe-out-power']) ? $st['poe-out-power'] : '';
-            }
-            unset($p);
-            echo json_encode(['success' => true, 'ports' => $ports, 'updated' => date('Y-m-d H:i:s')]);
+            echo json_encode(['success' => true, 'status' => $status, 'updated' => date('H:i:s')]);
         } catch (\Throwable $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
