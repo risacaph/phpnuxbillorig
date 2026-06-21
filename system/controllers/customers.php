@@ -831,7 +831,8 @@ switch ($action) {
         $search = _req('search');
         $order = _req('order', 'username');
         $filter = _req('filter', 'Active');
-        $orderby = _req('orderby', 'asc');
+        // Normalise to a fixed set so it cannot be injected into ORDER BY (used raw in order_by_expr below).
+        $orderby = (strtolower(_req('orderby', 'asc')) === 'desc') ? 'desc' : 'asc';
         $order_pos = [
             'username' => 0,
             'created_at' => 8,

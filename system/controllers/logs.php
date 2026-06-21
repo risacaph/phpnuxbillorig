@@ -115,7 +115,7 @@ switch ($action) {
 
     case 'list':
         $q = (_post('q') ? _post('q') : _get('q'));
-        $keep = _post('keep');
+        $keep = (int) _post('keep');
         if (!empty($keep)) {
             ORM::raw_execute("DELETE FROM tbl_logs WHERE UNIX_TIMESTAMP(date) < UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL $keep DAY))");
             r2(getUrl('logs/list/'), 's', "Delete logs older than $keep days");
@@ -134,7 +134,7 @@ switch ($action) {
         break;
     case 'radius':
         $q = (_post('q') ? _post('q') : _get('q'));
-        $keep = _post('keep');
+        $keep = (int) _post('keep');
         if (!empty($keep)) {
             ORM::raw_execute("DELETE FROM radpostauth WHERE UNIX_TIMESTAMP(authdate) < UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL $keep DAY))", [], 'radius');
             r2(getUrl('logs/radius/'), 's', "Delete logs older than $keep days");
@@ -161,8 +161,9 @@ switch ($action) {
         }
 
         if ($q !== null && $q !== '') {
+            $like = '%' . $q . '%';
             $query = ORM::for_table('tbl_message_logs')
-            ->whereRaw("message_type LIKE '%$q%' OR recipient LIKE '%$q%' OR message_content LIKE '%$q%' OR status LIKE '%$q%' OR error_message LIKE '%$q%'")
+            ->whereRaw("message_type LIKE ? OR recipient LIKE ? OR message_content LIKE ? OR status LIKE ? OR error_message LIKE ?", [$like, $like, $like, $like, $like])
                 ->order_by_desc('sent_at');
             $d = Paginator::findMany($query, ['q' => $q]);
         } else {

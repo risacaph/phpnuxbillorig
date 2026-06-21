@@ -1029,7 +1029,12 @@ switch ($action) {
             } catch (Exception $e) {
             }
             foreach ($json as $table => $records) {
-                ORM::raw_execute("TRUNCATE $table;");
+                // Only allow plain identifiers; blocks stacked-statement / identifier injection via crafted backup keys.
+                if (!preg_match('/^[A-Za-z0-9_]+$/', (string) $table)) {
+                    $fal++;
+                    continue;
+                }
+                ORM::raw_execute("TRUNCATE `$table`;");
                 foreach ($records as $rec) {
                     try {
                         $t = ORM::for_table($table)->create();

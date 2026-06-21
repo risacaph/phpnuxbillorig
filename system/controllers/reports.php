@@ -259,7 +259,7 @@ switch ($action) {
     case 'by-date':
     case 'activation':
         $q = (_post('q') ? _post('q') : _get('q'));
-        $keep = _post('keep');
+        $keep = (int) _post('keep');
         if (!empty($keep)) {
             ORM::raw_execute("DELETE FROM tbl_transactions WHERE date < UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL $keep DAY))");
             r2(getUrl('logs/list/'), 's', "Delete logs older than $keep days");
