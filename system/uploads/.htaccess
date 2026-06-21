@@ -1,0 +1,29 @@
+# Uploaded files must never be executed as scripts.
+# Applies to this directory and everything beneath it.
+
+# 1) Turn the PHP engine off where mod_php is in use.
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+# 2) Deny direct access to anything that could be executed server-side.
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phps|pht|cgi|pl|py|sh|asp|aspx|jsp)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Deny,Allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# 3) Force any such file to be treated as plain text if it is ever served.
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .phps .pht
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .phps .pht
+AddType text/plain .php .phtml .php3 .php4 .php5 .php7 .phps .pht

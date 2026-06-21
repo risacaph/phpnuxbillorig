@@ -24,6 +24,7 @@ ui/ui_custom/**
 !ui/ui_custom/README.md
 system/uploads/**
 !system/uploads/*.default.png
+!system/uploads/.htaccess
 system/uploads/sms/**
 !system/uploads/sms/index.html
 system/uploads/system/**
@@ -54,6 +55,10 @@ docs/**
 !docs/*.html
 !docs/*.md
 .htaccess
+!system/.htaccess
+!system/uploads/.htaccess
+!install/.htaccess
+!pages_template/.htaccess
 .idea
 !docs/insomnia.rest.json
 !system/uploads/paid.png
