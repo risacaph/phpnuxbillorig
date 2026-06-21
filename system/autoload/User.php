@@ -187,7 +187,17 @@ class User
         global $db_pass;
         if (isset($uid)) {
             $token = self::generateToken($uid);
-            setcookie('uid', $token['token'], time() + 86400 * 30, "/");
+            $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)
+                || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+            setcookie('uid', $token['token'], [
+                'expires' => time() + 86400 * 30,
+                'path' => '/',
+                'domain' => '',
+                'secure' => $isSecure,
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
             return $token;
         } else {
             return false;
