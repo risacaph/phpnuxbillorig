@@ -49,6 +49,7 @@ $ui->assign('_domain', str_replace('www.', '', parse_url(APP_URL, PHP_URL_HOST))
 $ui->assign('_url', APP_URL . '/?_route=');
 $ui->assign('_path', __DIR__);
 $ui->assign('_c', $config);
+$ui->assign('csrf_token', Csrf::getToken());
 $ui->assign('user_language', $_SESSION['user_language']);
 $ui->assign('UPLOAD_PATH', str_replace($root_path, '',  $UPLOAD_PATH));
 $ui->assign('CACHE_PATH', str_replace($root_path, '',  $CACHE_PATH));
@@ -129,6 +130,10 @@ try {
             $ui->assign('_MENU_' . $k, $v);
         }
         unset($menus, $menu_registered);
+        // Central CSRF enforcement for state-changing web requests. Exempt
+        // external POST surfaces that cannot carry our token: payment webhooks
+        // (callback) and captive-portal/hotspot flows (login/register/voucher).
+        Csrf::enforce($handler, ['callback', 'login', 'register', 'voucher']);
         include($sys_render);
     } else {
         if( empty($_SERVER["HTTP_SEC_FETCH_DEST"]) || $_SERVER["HTTP_SEC_FETCH_DEST"] != 'document' ){
