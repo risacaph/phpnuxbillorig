@@ -81,25 +81,28 @@ $routes = explode('/', $req);
 $handler = $routes[0];
 
 if (!empty($token)) {
-    if ($token == $config['api_key']) {
-        $admin = ORM::for_table('tbl_users')->where('user_type', 'SuperAdmin')->find_one($id);
+    if (!empty($config['api_key']) && hash_equals((string) $config['api_key'], (string) $token)) {
+        $admin = ORM::for_table('tbl_users')->where('user_type', 'SuperAdmin')->find_one();
         if (empty($admin)) {
-            $admin = ORM::for_table('tbl_users')->where('user_type', 'Admin')->find_one($id);
+            $admin = ORM::for_table('tbl_users')->where('user_type', 'Admin')->find_one();
             if (empty($admin)) {
                 showResult(false, Lang::T("Token is invalid"));
             }
         }
     } else {
         # validate token
-        list($tipe, $uid, $time, $sha1) = explode('.', $token);
-        if (trim($sha1) != sha1($uid . '.' . $time . '.' . $api_secret)) {
+        $parts = explode('.', $token);
+        if (count($parts) < 4) {
+            showResult(false, Lang::T("Token is invalid"));
+        }
+        list($tipe, $uid, $time, $sha1) = $parts;
+        if (!hash_equals(sha1($uid . '.' . $time . '.' . $api_secret), trim((string) $sha1))) {
             showResult(false, Lang::T("Token is invalid"));
         }
 
         #cek token expiration
         // 3 bulan
         if ($time != 0 && time() - $time > 7776000) {
-            die("$time != " . (time() - $time));
             showResult(false, Lang::T("Token Expired"), [], ['login' => true]);
         }
 
