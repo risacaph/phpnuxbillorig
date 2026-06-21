@@ -8,9 +8,12 @@
 try {
     require_once 'init.php';
 } catch (Throwable $e) {
-    die($e->getMessage() . '<br><pre>' . $e->getTraceAsString() . '</pre>');
-} catch (Exception $e) {
-    die($e->getMessage() . '<br><pre>' . $e->getTraceAsString() . '</pre>');
+    error_log('Startup error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+    if (isset($_app_stage) && $_app_stage != 'Live') {
+        die($e->getMessage() . '<br><pre>' . $e->getTraceAsString() . '</pre>');
+    }
+    http_response_code(500);
+    die('A system error occurred during startup. Please contact the administrator.');
 }
 
 function _notify($msg, $type = 'e')
@@ -139,31 +142,21 @@ try {
         }
     }
 } catch (Throwable $e) {
-    Message::sendTelegram(
-        "Sistem Error.\n" .
-            $e->getMessage() . "\n" .
-            $e->getTraceAsString()
-    );
+    $errId = substr(md5(uniqid('', true)), 0, 8);
+    error_log("App error [$errId]: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+    // Notify the admin channel WITHOUT the stack trace: traces routinely carry
+    // DB/SMTP/payment-gateway credentials and would leak them to Telegram.
+    Message::sendTelegram("System error (ref: $errId). See server logs for details.");
     if (empty($_SESSION['aid'])) {
         $ui->display('customer/error.tpl');
         die();
     }
-    $ui->assign("error_message", $e->getMessage() . '<br><pre>' . $e->getTraceAsString() . '</pre>');
-    $ui->assign("error_title", "PHPNuxBill Crash");
-    $ui->display('admin/error.tpl');
-    die();
-} catch (Exception $e) {
-    Message::sendTelegram(
-        "Sistem Error.\n" .
-            $e->getMessage() . "\n" .
-            $e->getTraceAsString()
-    );
-    if (empty($_SESSION['aid'])) {
-        $ui->display('customer/error.tpl');
-        die();
+    if (isset($_app_stage) && $_app_stage != 'Live') {
+        $ui->assign("error_message", $e->getMessage() . '<br><pre>' . $e->getTraceAsString() . '</pre>');
+    } else {
+        $ui->assign("error_message", "An unexpected error occurred. Reference ID: " . $errId);
     }
-    $ui->assign("error_message", $e->getMessage() . '<br><pre>' . $e->getTraceAsString() . '</pre>');
-    $ui->assign("error_title", "PHPNuxBill Crash");
+    $ui->assign("error_title", "System Error");
     $ui->display('admin/error.tpl');
     die();
 }

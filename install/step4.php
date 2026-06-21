@@ -5,6 +5,8 @@
  *  by https://t.me/ibnux
  **/
 
+require __DIR__ . '/_guard.php';
+
 //error_reporting (0);
 $appurl = $_POST['appurl'];
 $db_host = $_POST['dbhost'];
@@ -25,9 +27,12 @@ try {
 }
 
 if ($cn == '1') {
-    if (isset($_POST['radius']) && $_POST['radius'] == 'yes') {
-        $input = '<?php
+    // Build config.php with var_export() so credentials containing quotes,
+    // backslashes or "$"/"{" cannot break out of the string context and inject
+    // PHP code into the generated config file.
+    $useRadius = (isset($_POST['radius']) && $_POST['radius'] == 'yes');
 
+    $input = '<?php
 $protocol = (!empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off" || $_SERVER["SERVER_PORT"] == 443) ? "https://" : "http://";
 $host = $_SERVER["HTTP_HOST"];
 $baseDir = rtrim(dirname($_SERVER["SCRIPT_NAME"]), "/\\\\");
@@ -37,60 +42,40 @@ define("APP_URL", $protocol . $host . $baseDir);
 $_app_stage = "Live";
 
 // Database PHPNuxBill
-$db_host	    = "' . $db_host . '";
-$db_user        = "' . $db_user . '";
-$db_pass    	= "' . $db_pass . '";
-$db_name	    = "' . $db_name . '";
+$db_host = ' . var_export($db_host, true) . ';
+$db_user = ' . var_export($db_user, true) . ';
+$db_pass = ' . var_export($db_pass, true) . ';
+$db_name = ' . var_export($db_name, true) . ';
+';
 
+    if ($useRadius) {
+        $input .= '
 // Database Radius
-$radius_host	    = "' . $db_host . '";
-$radius_user        = "' . $db_user . '";
-$radius_pass    	= "' . $db_pass . '";
-$radius_name	    = "' . $db_name . '";
-
-if($_app_stage!="Live"){
-    error_reporting(E_ERROR);
-    ini_set("display_errors", 1);
-    ini_set("display_startup_errors", 1);
-}else{
-    error_reporting(E_ERROR);
-    ini_set("display_errors", 0);
-    ini_set("display_startup_errors", 0);
-}';
-    } else {
-        $input = '<?php
-$protocol = (!empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off" || $_SERVER["SERVER_PORT"] == 443) ? "https://" : "http://";
-$host = $_SERVER["HTTP_HOST"];
-$baseDir = rtrim(dirname($_SERVER["SCRIPT_NAME"]), "/\\\\");
-define("APP_URL", $protocol . $host . $baseDir);
-
-// Live, Dev, Demo
-$_app_stage = "Live";
-
-// Database PHPNuxBill
-$db_host	    = "' . $db_host . '";
-$db_user        = "' . $db_user . '";
-$db_pass	    = "' . $db_pass . '";
-$db_name	    = "' . $db_name . '";
-
-if($_app_stage!="Live"){
-    error_reporting(E_ERROR);
-    ini_set("display_errors", 1);
-    ini_set("display_startup_errors", 1);
-}else{
-    error_reporting(E_ERROR);
-    ini_set("display_errors", 0);
-    ini_set("display_startup_errors", 0);
-}';
+$radius_host = ' . var_export($db_host, true) . ';
+$radius_user = ' . var_export($db_user, true) . ';
+$radius_pass = ' . var_export($db_pass, true) . ';
+$radius_name = ' . var_export($db_name, true) . ';
+';
     }
+
+    $input .= '
+if($_app_stage!="Live"){
+    error_reporting(E_ERROR);
+    ini_set("display_errors", 1);
+    ini_set("display_startup_errors", 1);
+}else{
+    error_reporting(E_ERROR);
+    ini_set("display_errors", 0);
+    ini_set("display_startup_errors", 0);
+}';
+
     $wConfig = "../config.php";
-    $fh = fopen($wConfig, 'w') or die("Can't create config file, your server does not support 'fopen' function,
-	please create a file named - config.php with following contents- <br/>$input");
+    $fh = fopen($wConfig, 'w') or die("Can't create config file, your server does not support the 'fopen' function. Please create config.php manually.");
     fwrite($fh, $input);
     fclose($fh);
     $sql = file_get_contents('phpnuxbill.sql');
     $qr = $dbh->exec($sql);
-    if (isset($_POST['radius']) && $_POST['radius'] == 'yes') {
+    if ($useRadius) {
         $sql = file_get_contents('radius.sql');
         $qrs = $dbh->exec($sql);
     }

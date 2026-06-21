@@ -30,6 +30,15 @@ if (!isset($_SESSION['aid']) || empty($_SESSION['aid'])) {
     r2("./?_route=login&You_are_not_admin", 'e', 'You are not admin');
 }
 
+// Restrict self-update downloads to trusted hosts. Without this, the
+// attacker-controllable update_url lets an admin (e.g. via a crafted link)
+// install an arbitrary ZIP over the web root = remote code execution.
+$allowed_update_hosts = array('github.com', 'www.github.com', 'codeload.github.com', 'raw.githubusercontent.com', 'objects.githubusercontent.com');
+$update_host = strtolower((string) parse_url($update_url, PHP_URL_HOST));
+if (!in_array($update_host, $allowed_update_hosts, true)) {
+    r2("./?_route=community", 'e', 'Update URL host is not allowed.');
+}
+
 set_time_limit(-1);
 
 if (!is_writeable(pathFixer('system/cache/'))) {
