@@ -295,6 +295,8 @@
                                         href="{Text::url('routers')}">Routers</a></li>
                                 <li {if $_routes[0] eq 'monitor' }class="active" {/if}><a
                                         href="{Text::url('monitor')}"><i class="fa fa-signal"></i> {Lang::T('Active Connections')}</a></li>
+                                <li {if $_routes[0] eq 'poe' }class="active" {/if}><a
+                                        href="{Text::url('poe')}"><i class="fa fa-plug"></i> {Lang::T('PoE Management')}</a></li>
                                 <li {if $_routes[0] eq 'pool' and $_routes[1] eq 'list' }class="active" {/if}><a
                                         href="{Text::url('pool/list')}">IP Pool</a></li>
                                 <li {if $_routes[0] eq 'pool' and $_routes[1] eq 'port' }class="active" {/if}><a
