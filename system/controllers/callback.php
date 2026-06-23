@@ -6,7 +6,7 @@
  **/
 
 
-$action = $routes['1'];
+$action = alphanumeric($routes['1']);
 
 
 if (file_exists($PAYMENTGATEWAY_PATH . DIRECTORY_SEPARATOR . $action . '.php')) {

@@ -29,6 +29,11 @@ switch ($do) {
             _msglog('e', Lang::T('Invalid or Expired CSRF Token'));
             r2(getUrl('login'));
         }
+        $throttleKey = 'login.user.' . Throttle::clientIp();
+        if (Throttle::tooManyAttempts($throttleKey)) {
+            _msglog('e', Lang::T('Too many failed login attempts, please try again later'));
+            r2(getUrl('login'));
+        }
         run_hook('customer_login'); #HOOK
         if ($username != '' and $password != '') {
             $d = ORM::for_table('tbl_customers')->where('username', $username)->find_one();
@@ -38,6 +43,10 @@ switch ($do) {
                     _alert(Lang::T('This account status') . ' : ' . Lang::T($d['status']), 'danger', "");
                 }
                 if (Password::_uverify($password, $d_pass) == true) {
+                    Throttle::clear($throttleKey);
+                    if (!$isApi) {
+                        session_regenerate_id(true);
+                    }
                     $_SESSION['uid'] = $d['id'];
                     $token = User::setCookie($d['id']);
                     $d->last_login = date('Y-m-d H:i:s');
@@ -52,11 +61,13 @@ switch ($do) {
                     }
                     _alert(Lang::T('Login Successful'), 'success', "home");
                 } else {
+                    Throttle::registerFailure($throttleKey);
                     _msglog('e', Lang::T('Invalid Username or Password'));
                     _log($username . ' ' . Lang::T('Failed Login'), 'User');
                     r2(getUrl('login'));
                 }
             } else {
+                Throttle::registerFailure($throttleKey);
                 _msglog('e', Lang::T('Invalid Username or Password'));
                 r2(getUrl('login'));
             }

@@ -559,4 +559,196 @@ class Mikrotik
                 ->setArgument('numbers', $id)
         );
     }
+
+    // ===================================================================
+    // Live monitoring & PoE management
+    // ===================================================================
+
+    /**
+     * Extract all data rows (!re) from a RouterOS response collection.
+     *
+     * @param mixed $responses ResponseCollection (or null)
+     * @param array $props     property names to read from each row
+     * @return array list of associative rows
+     */
+    private static function rows($responses, $props)
+    {
+        $out = [];
+        if (!$responses) {
+            return $out;
+        }
+        foreach ($responses as $response) {
+            if ($response->getType() !== RouterOS\Response::TYPE_DATA) {
+                continue;
+            }
+            $row = [];
+            foreach ($props as $p) {
+                $row[$p] = $response->getProperty($p);
+            }
+            $out[] = $row;
+        }
+        return $out;
+    }
+
+    /**
+     * All active Hotspot sessions on the router.
+     */
+    public static function getActiveHotspot($client)
+    {
+        if (!$client) {
+            return [];
+        }
+        $responses = $client->sendSync(new RouterOS\Request('/ip/hotspot/active/print'));
+        return self::rows($responses, ['.id', 'user', 'address', 'mac-address', 'uptime', 'session-time-left', 'bytes-in', 'bytes-out', 'server', 'login-by']);
+    }
+
+    /**
+     * All active PPP / PPPoE sessions on the router.
+     */
+    public static function getActivePppoe($client)
+    {
+        if (!$client) {
+            return [];
+        }
+        $responses = $client->sendSync(new RouterOS\Request('/ppp/active/print'));
+        return self::rows($responses, ['.id', 'name', 'service', 'address', 'caller-id', 'uptime', 'encoding']);
+    }
+
+    /**
+     * Disconnect an active Hotspot session by its RouterOS .id.
+     */
+    public static function disconnectHotspotById($client, $id)
+    {
+        if (!$client || empty($id)) {
+            return;
+        }
+        $req = new RouterOS\Request('/ip/hotspot/active/remove');
+        $req->setArgument('numbers', $id);
+        $client->sendSync($req);
+    }
+
+    /**
+     * Disconnect an active PPP session by its RouterOS .id.
+     */
+    public static function disconnectPppoeById($client, $id)
+    {
+        if (!$client || empty($id)) {
+            return;
+        }
+        $req = new RouterOS\Request('/ppp/active/remove');
+        $req->setArgument('numbers', $id);
+        $client->sendSync($req);
+    }
+
+    /**
+     * PoE-capable ethernet ports (only those that expose a poe-out setting).
+     */
+    public static function getPoePorts($client)
+    {
+        if (!$client) {
+            return [];
+        }
+        $responses = $client->sendSync(new RouterOS\Request('/interface/ethernet/print'));
+        $ports = self::rows($responses, ['.id', 'name', 'poe-out', 'poe-priority', 'running', 'disabled', 'comment']);
+        $poe = [];
+        foreach ($ports as $p) {
+            if ($p['poe-out'] !== null && $p['poe-out'] !== '') {
+                $poe[] = $p;
+            }
+        }
+        return $poe;
+    }
+
+    /**
+     * Best-effort live PoE status keyed by port name
+     * (status / voltage / current / power). Returns [] when the board or
+     * RouterOS version does not support PoE monitoring.
+     */
+    public static function getPoeStatus($client, $names)
+    {
+        if (!$client || empty($names)) {
+            return [];
+        }
+        $numbers = is_array($names) ? implode(',', $names) : $names;
+        try {
+            $req = new RouterOS\Request('/interface/ethernet/poe/monitor');
+            $req->setArgument('numbers', $numbers);
+            $req->setArgument('once', '');
+            $responses = $client->sendSync($req);
+            $rows = self::rows($responses, ['name', 'poe-out-status', 'poe-out-voltage', 'poe-out-current', 'poe-out-power']);
+            $byName = [];
+            foreach ($rows as $r) {
+                if (!empty($r['name'])) {
+                    $byName[$r['name']] = $r;
+                }
+            }
+            return $byName;
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Set a port's poe-out mode: off | auto-on | forced-on.
+     */
+    public static function setPoeOut($client, $id, $state)
+    {
+        if (!$client || empty($id)) {
+            return;
+        }
+        if (!in_array($state, ['off', 'auto-on', 'forced-on'], true)) {
+            return;
+        }
+        $req = new RouterOS\Request('/interface/ethernet/set');
+        $req->setArgument('numbers', $id);
+        $req->setArgument('poe-out', $state);
+        $client->sendSync($req);
+    }
+
+    /**
+     * Power-cycle a PoE port to remotely reboot the powered device.
+     * Requires RouterOS >= 6.45.
+     */
+    public static function poePowerCycle($client, $id, $duration = 5)
+    {
+        if (!$client || empty($id)) {
+            return;
+        }
+        $duration = (int) $duration;
+        if ($duration < 1) {
+            $duration = 1;
+        }
+        $req = new RouterOS\Request('/interface/ethernet/poe/power-cycle');
+        $req->setArgument('numbers', $id);
+        $req->setArgument('duration', $duration . 's');
+        $client->sendSync($req);
+    }
+
+    /**
+     * Find a single active Hotspot session for a username (server-side filter).
+     */
+    public static function findActiveHotspotByUser($client, $username)
+    {
+        if (!$client || $username === '') {
+            return null;
+        }
+        $req = new RouterOS\Request('/ip/hotspot/active/print');
+        $req->setQuery(RouterOS\Query::where('user', $username));
+        $rows = self::rows($client->sendSync($req), ['.id', 'user', 'address', 'mac-address', 'uptime', 'bytes-in', 'bytes-out', 'server']);
+        return count($rows) ? $rows[0] : null;
+    }
+
+    /**
+     * Find a single active PPP session for a username (server-side filter).
+     */
+    public static function findActivePppoeByUser($client, $username)
+    {
+        if (!$client || $username === '') {
+            return null;
+        }
+        $req = new RouterOS\Request('/ppp/active/print');
+        $req->setQuery(RouterOS\Query::where('name', $username));
+        $rows = self::rows($client->sendSync($req), ['.id', 'name', 'service', 'address', 'caller-id', 'uptime']);
+        return count($rows) ? $rows[0] : null;
+    }
 }

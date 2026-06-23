@@ -18,7 +18,7 @@ class Package
      * @param array $pgids payment gateway ids
      * @return boolean
      */
-    public static function rechargeUser($id_customer, $router_name, $plan_id, $gateway, $channel, $note = '')
+    public static function rechargeUser($id_customer, $router_name, $plan_id, $gateway, $channel, $note = '', $paidAmount = null)
     {
         global $config, $admin, $c, $p, $b, $t, $d, $zero, $trx, $_app_stage, $isChangePlan;
         $date_only = date("Y-m-d");
@@ -71,6 +71,13 @@ class Package
             }
         }
 
+        // Optional central guard: when the caller (a payment gateway) supplies the
+        // amount actually paid, refuse to provision if it underpays the plan price.
+        // Existing callers pass nothing and are unaffected.
+        if ($paidAmount !== null && (float) $paidAmount + 0.00001 < (float) $p['price']) {
+            _log("Recharge rejected: paid {$paidAmount} is less than price {$p['price']} for plan " . $p['name_plan'], 'Payment');
+            return false;
+        }
 
         if (!$p['enabled']) {
             if (!isset($admin) || !isset($admin['id']) || empty($admin['id'])) {

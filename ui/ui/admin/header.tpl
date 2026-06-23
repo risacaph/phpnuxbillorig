@@ -11,6 +11,51 @@
         var appUrl = '{$app_url}';
     </script>
 
+    <meta name="csrf-token" content="{$csrf_token}">
+    <script>
+        // Auto-attach the CSRF token to same-origin POST forms and AJAX so the
+        // central server-side check passes without editing every form template.
+        (function () {
+            var m = document.querySelector('meta[name="csrf-token"]');
+            if (!m) return;
+            var token = m.getAttribute('content');
+            document.addEventListener('submit', function (e) {
+                var f = e.target;
+                if (!f || !f.method || f.method.toLowerCase() !== 'post') return;
+                if (!f.querySelector('input[name="csrf_token"]')) {
+                    var i = document.createElement('input');
+                    i.type = 'hidden'; i.name = 'csrf_token'; i.value = token;
+                    f.appendChild(i);
+                }
+            }, true);
+            if (window.jQuery) { jQuery.ajaxSetup({ headers: { 'X-CSRF-Token': token } }); }
+            if (window.fetch) {
+                var _f = window.fetch;
+                window.fetch = function (input, init) {
+                    init = init || {};
+                    var method = (init.method || (input && input.method) || 'GET').toUpperCase();
+                    if (method !== 'GET' && method !== 'HEAD') {
+                        if (init.headers instanceof Headers) { init.headers.set('X-CSRF-Token', token); }
+                        else { init.headers = init.headers || {}; init.headers['X-CSRF-Token'] = token; }
+                    }
+                    return _f(input, init);
+                };
+            }
+            var _open = XMLHttpRequest.prototype.open;
+            XMLHttpRequest.prototype.open = function (method) {
+                var um = (method || 'GET').toUpperCase();
+                if (um !== 'GET' && um !== 'HEAD') {
+                    var self = this, _send = this.send;
+                    this.send = function (body) {
+                        try { self.setRequestHeader('X-CSRF-Token', token); } catch (e) {}
+                        return _send.call(self, body);
+                    };
+                }
+                return _open.apply(this, arguments);
+            };
+        })();
+    </script>
+
     <link rel="stylesheet" href="{$app_url}/ui/ui/styles/bootstrap.min.css">
     <link rel="stylesheet" href="{$app_url}/ui/ui/fonts/ionicons/css/ionicons.min.css">
     <link rel="stylesheet" href="{$app_url}/ui/ui/fonts/font-awesome/css/font-awesome.min.css">
@@ -248,6 +293,10 @@
                             <ul class="treeview-menu">
                                 <li {if $_routes[0] eq 'routers' and $_routes[1] eq '' }class="active" {/if}><a
                                         href="{Text::url('routers')}">Routers</a></li>
+                                <li {if $_routes[0] eq 'monitor' }class="active" {/if}><a
+                                        href="{Text::url('monitor')}"><i class="fa fa-signal"></i> {Lang::T('Active Connections')}</a></li>
+                                <li {if $_routes[0] eq 'poe' }class="active" {/if}><a
+                                        href="{Text::url('poe')}"><i class="fa fa-plug"></i> {Lang::T('PoE Management')}</a></li>
                                 <li {if $_routes[0] eq 'pool' and $_routes[1] eq 'list' }class="active" {/if}><a
                                         href="{Text::url('pool/list')}">IP Pool</a></li>
                                 <li {if $_routes[0] eq 'pool' and $_routes[1] eq 'port' }class="active" {/if}><a

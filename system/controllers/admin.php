@@ -28,14 +28,25 @@ switch ($do) {
         if (!Csrf::check($csrf_token)) {
             _alert(Lang::T('Invalid or Expired CSRF Token') . ".", 'danger', "admin");
         }
+        $throttleKey = 'login.admin.' . Throttle::clientIp();
+        if (Throttle::tooManyAttempts($throttleKey)) {
+            _alert(Lang::T('Too many failed login attempts, please try again later') . ".", 'danger', "admin");
+        }
         run_hook('admin_login'); #HOOK
         if ($username != '' and $password != '') {
             $d = ORM::for_table('tbl_users')->where('username', $username)->find_one();
             if ($d) {
                 $d_pass = $d['password'];
                 if (Password::_verify($password, $d_pass) == true) {
+                    Throttle::clear($throttleKey);
+                    if (!$isApi) {
+                        session_regenerate_id(true);
+                    }
                     $_SESSION['aid'] = $d['id'];
                     $token = Admin::setCookie($d['id']);
+                    if (Password::_needsRehash($d_pass)) {
+                        $d->password = Password::_crypt($password);
+                    }
                     $d->last_login = date('Y-m-d H:i:s');
                     $d->save();
                     _log($username . ' ' . Lang::T('Login Successful'), $d['user_type'], $d['id']);
@@ -48,10 +59,12 @@ switch ($do) {
                     }
                     _alert(Lang::T('Login Successful'), 'success', "dashboard");
                 } else {
+                    Throttle::registerFailure($throttleKey);
                     _log($username . ' ' . Lang::T('Failed Login'), $d['user_type']);
                     _alert(Lang::T('Invalid Username or Password') . ".", 'danger', "admin");
                 }
             } else {
+                Throttle::registerFailure($throttleKey);
                 _alert(Lang::T('Invalid Username or Password') . "..", 'danger', "admin");
             }
         } else {

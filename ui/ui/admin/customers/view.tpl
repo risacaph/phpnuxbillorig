@@ -18,6 +18,16 @@
                         <b>{Lang::T('Username')}</b> <span class="pull-right">{$d['username']}</span>
                     </li>
                     <li class="list-group-item">
+                        <b>{Lang::T('Connection')}</b>
+                        <span class="pull-right" id="conn-status"><span class="text-muted">...</span></span>
+                    </li>
+                    <li class="list-group-item" id="conn-detail-item" style="display:none">
+                        <small id="conn-detail" class="text-muted"></small>
+                        <button type="button" class="btn btn-danger btn-xs pull-right" id="conn-kill" style="display:none">
+                            <i class="glyphicon glyphicon-remove"></i> {Lang::T('Disconnect')}
+                        </button>
+                    </li>
+                    <li class="list-group-item">
                         <b>{Lang::T('Phone Number')}</b> <span class="pull-right">{$d['phonenumber']}</span>
                     </li>
                     <li class="list-group-item">
@@ -300,4 +310,74 @@
         </script>
     {/literal}
 {/if}
+<script>
+    window.CONN_CFG = {
+        url: "{Text::url('monitor/customer')}&id={$d['id']}",
+        disconnectUrl: "{Text::url('monitor/disconnect')}",
+        t: {
+            online: "{Lang::T('Online')|escape:'javascript'}",
+            offline: "{Lang::T('Offline')|escape:'javascript'}",
+            confirm: "{Lang::T('Disconnect this session')|escape:'javascript'}"
+        }
+    };
+</script>
+{literal}
+<script>
+(function () {
+    var cfg = window.CONN_CFG;
+    var metaTok = document.querySelector('meta[name="csrf-token"]');
+    var csrfToken = metaTok ? metaTok.getAttribute('content') : '';
+    var statusEl = document.getElementById('conn-status');
+    var detItem = document.getElementById('conn-detail-item');
+    var detEl = document.getElementById('conn-detail');
+    var killBtn = document.getElementById('conn-kill');
+    if (!statusEl) { return; }
+    var current = null;
+
+    function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+    function fmtBytes(b) { b = parseInt(b, 10); if (isNaN(b) || b <= 0) return '-'; var u = ['B', 'KB', 'MB', 'GB', 'TB'], i = 0; while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; } return b.toFixed(i ? 1 : 0) + ' ' + u[i]; }
+
+    function load() {
+        fetch(cfg.url, { headers: { 'X-CSRF-Token': csrfToken } })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (d.online && d.sessions && d.sessions.length) {
+                    var s = d.sessions[0];
+                    current = s;
+                    statusEl.innerHTML = '<span class="label label-success">' + esc(cfg.t.online) + '</span>';
+                    var parts = [];
+                    if (s.address) parts.push('IP ' + esc(s.address));
+                    if (s.mac) parts.push('MAC ' + esc(s.mac));
+                    if (s.uptime) parts.push(esc(s.uptime));
+                    if (s.bytes_in || s.bytes_out) parts.push('D ' + fmtBytes(s.bytes_in) + ' / U ' + fmtBytes(s.bytes_out));
+                    parts.push(esc(s.type) + ' @ ' + esc(s.router));
+                    detEl.innerHTML = parts.join(' &middot; ');
+                    detItem.style.display = '';
+                    killBtn.style.display = '';
+                } else {
+                    current = null;
+                    statusEl.innerHTML = '<span class="label label-default">' + esc(cfg.t.offline) + '</span>';
+                    detItem.style.display = 'none';
+                    killBtn.style.display = 'none';
+                }
+            })
+            .catch(function () { statusEl.innerHTML = '<span class="text-muted">-</span>'; });
+    }
+    if (killBtn) {
+        killBtn.addEventListener('click', function () {
+            if (!current) { return; }
+            if (!confirm(cfg.t.confirm + '?')) { return; }
+            killBtn.disabled = true;
+            var body = 'router=' + encodeURIComponent(current.router) + '&type=' + encodeURIComponent(current.type) +
+                '&id=' + encodeURIComponent(current.id) + '&csrf_token=' + encodeURIComponent(csrfToken);
+            fetch(cfg.disconnectUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': csrfToken }, body: body })
+                .then(function (r) { return r.json(); })
+                .then(function () { killBtn.disabled = false; load(); })
+                .catch(function () { killBtn.disabled = false; });
+        });
+    }
+    load();
+})();
+</script>
+{/literal}
 {include file="sections/footer.tpl"}

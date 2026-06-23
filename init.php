@@ -374,7 +374,24 @@ function _alert($text, $type = 'success', $url = "home", $time = 3)
 
 
 if (!isset($api_secret)) {
-    $api_secret = $db_pass;
+    // Use a dedicated, persisted random secret rather than the DB password, so a
+    // leaked DB password can no longer be used to forge API tokens.
+    if (empty($config['app_secret'])) {
+        try {
+            $config['app_secret'] = bin2hex(random_bytes(32));
+            $row = ORM::for_table('tbl_appconfig')->where('setting', 'app_secret')->find_one();
+            if (!$row) {
+                $row = ORM::for_table('tbl_appconfig')->create();
+                $row->setting = 'app_secret';
+            }
+            $row->value = $config['app_secret'];
+            $row->save();
+        } catch (Throwable $e) {
+            // Degrade gracefully if the secret cannot be persisted.
+            $config['app_secret'] = $db_pass;
+        }
+    }
+    $api_secret = $config['app_secret'];
 }
 
 function displayMaintenanceMessage(): void
