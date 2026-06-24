@@ -38,7 +38,7 @@ CT_PASSWORD="${CT_PASSWORD:-}"         # container root password; random if empt
 UNPRIVILEGED="${UNPRIVILEGED:-1}"      # 1 = unprivileged container (recommended)
 
 REPO_URL="${REPO_URL:-https://github.com/risacaph/phpnuxbillorig.git}"
-REPO_BRANCH="${REPO_BRANCH:-claude/adoring-wozniak-bx5m24}"
+REPO_BRANCH="${REPO_BRANCH:-master}"
 
 DB_NAME="${DB_NAME:-phpnuxbill}"
 DB_USER="${DB_USER:-phpnuxbill}"
