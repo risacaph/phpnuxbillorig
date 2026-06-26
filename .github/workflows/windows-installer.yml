@@ -1,8 +1,9 @@
 name: Build Windows Installer
 
 # Builds RisacaPh-Billing-Setup-<version>.exe from installer/RisacaPh-Billing.iss
-# on a Windows runner. On a tag push the .exe is attached to that release;
-# on manual dispatch it is uploaded as a downloadable workflow artifact.
+# on a Windows runner and publishes it as a GitHub Release asset.
+# Runs on a tag push OR manual dispatch. On dispatch the runner creates the
+# release (and its tag) itself via GITHUB_TOKEN, so no local tag push is needed.
 
 on:
   push:
@@ -26,6 +27,16 @@ jobs:
       - name: Compile installer
         run: '& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "installer\RisacaPh-Billing.iss"'
 
+      - name: Resolve release tag
+        id: ver
+        shell: bash
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=$(node -p "require('./version.json').version")" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -33,8 +44,19 @@ jobs:
           path: installer/Output/*.exe
           if-no-files-found: error
 
-      - name: Attach installer to release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Publish release with installer
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: RisacaPh-Billing ${{ steps.ver.outputs.tag }}
+          make_latest: true
+          fail_on_unmatched_files: true
           files: installer/Output/*.exe
+          body: |
+            Windows installer for **RisacaPh-Billing ${{ steps.ver.outputs.tag }}**.
+
+            Download `RisacaPh-Billing-Setup-${{ steps.ver.outputs.tag }}.exe` below and run it
+            as Administrator. It installs XAMPP (Apache + MariaDB + PHP), deploys the app,
+            creates the database and the cron Scheduled Tasks, and finishes at
+            `http://localhost/phpnuxbill/admin` with the default login `admin` / `admin`
+            (change it immediately).
