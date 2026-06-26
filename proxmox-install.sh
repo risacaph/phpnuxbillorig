@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# PHPNuxBill — Proxmox VE LXC installer
+# RisacaPh-Billing — Proxmox VE LXC installer
 # ---------------------------------------------------------------------------
 # Run this ON A PROXMOX VE HOST (not inside a container). It creates a Debian
-# 12 LXC container and installs PHPNuxBill (Apache + MariaDB + PHP 8.2) inside
+# 12 LXC container and installs RisacaPh-Billing (Apache + MariaDB + PHP 8.2) inside
 # it, imports the database, sets up cron jobs and finishes with a working
 # admin login.
 #
@@ -24,7 +24,7 @@ set -euo pipefail
 # Configuration (override any of these via the environment)
 # ---------------------------------------------------------------------------
 CTID="${CTID:-}"                       # container id; auto-picks next free id if empty
-CT_HOSTNAME="${CT_HOSTNAME:-phpnuxbill}"  # container hostname (avoid the host's own $HOSTNAME)
+CT_HOSTNAME="${CT_HOSTNAME:-risacaph-billing}"  # container hostname (avoid the host's own $HOSTNAME)
 DISK_GB="${DISK_GB:-8}"                # rootfs size in GB
 RAM_MB="${RAM_MB:-1024}"               # memory in MB
 CORES="${CORES:-2}"                    # cpu cores
@@ -40,8 +40,8 @@ UNPRIVILEGED="${UNPRIVILEGED:-1}"      # 1 = unprivileged container (recommended
 REPO_URL="${REPO_URL:-https://github.com/risacaph/phpnuxbillorig.git}"
 REPO_BRANCH="${REPO_BRANCH:-master}"
 
-DB_NAME="${DB_NAME:-phpnuxbill}"
-DB_USER="${DB_USER:-phpnuxbill}"
+DB_NAME="${DB_NAME:-risacaph_billing}"
+DB_USER="${DB_USER:-risacaph_billing}"
 DB_PASS="${DB_PASS:-}"                 # random if empty
 
 WEBROOT="/var/www/html"
@@ -147,7 +147,7 @@ done
 # ---------------------------------------------------------------------------
 # Build the in-container provisioning script and run it
 # ---------------------------------------------------------------------------
-INNER="$(mktemp /tmp/phpnuxbill-inner.XXXXXX.sh)"
+INNER="$(mktemp /tmp/risacaph-billing-inner.XXXXXX.sh)"
 trap 'rm -f "$INNER"' EXIT
 
 {
@@ -184,7 +184,7 @@ for i in $(seq 1 30); do
     sleep 1
 done
 
-say "Fetching PHPNuxBill ($REPO_BRANCH)..."
+say "Fetching RisacaPh-Billing ($REPO_BRANCH)..."
 rm -rf "$WEBROOT"
 git clone --depth 1 --branch "$REPO_BRANCH" "$REPO_URL" "$WEBROOT" >/dev/null 2>&1 \
     || git clone --depth 1 "$REPO_URL" "$WEBROOT" >/dev/null 2>&1
@@ -233,7 +233,7 @@ a2enmod rewrite >/dev/null 2>&1 || true
 if [ -f "${WEBROOT}/.htaccess_firewall" ] && [ ! -f "${WEBROOT}/.htaccess" ]; then
     cp "${WEBROOT}/.htaccess_firewall" "${WEBROOT}/.htaccess"
 fi
-cat > /etc/apache2/sites-available/phpnuxbill.conf <<CONF
+cat > /etc/apache2/sites-available/risacaph-billing.conf <<CONF
 <VirtualHost *:80>
     DocumentRoot ${WEBROOT}
     <Directory ${WEBROOT}>
@@ -241,12 +241,12 @@ cat > /etc/apache2/sites-available/phpnuxbill.conf <<CONF
         AllowOverride All
         Require all granted
     </Directory>
-    ErrorLog \${APACHE_LOG_DIR}/phpnuxbill-error.log
-    CustomLog \${APACHE_LOG_DIR}/phpnuxbill-access.log combined
+    ErrorLog \${APACHE_LOG_DIR}/risacaph-billing-error.log
+    CustomLog \${APACHE_LOG_DIR}/risacaph-billing-access.log combined
 </VirtualHost>
 CONF
 a2dissite 000-default.conf >/dev/null 2>&1 || true
-a2ensite phpnuxbill.conf >/dev/null 2>&1 || true
+a2ensite risacaph-billing.conf >/dev/null 2>&1 || true
 systemctl reload apache2
 
 say "Setting permissions..."
@@ -258,16 +258,16 @@ say "Locking down the web installer..."
 rm -rf "${WEBROOT}/install"
 
 say "Installing cron jobs..."
-cat > /etc/cron.d/phpnuxbill <<CRON
-# PHPNuxBill scheduled tasks
+cat > /etc/cron.d/risacaph-billing <<CRON
+# RisacaPh-Billing scheduled tasks
 */5 * * * * www-data /usr/bin/php ${WEBROOT}/system/cron.php >/dev/null 2>&1
 0 8 * * *   www-data /usr/bin/php ${WEBROOT}/system/cron_reminder.php >/dev/null 2>&1
 CRON
-chmod 644 /etc/cron.d/phpnuxbill
+chmod 644 /etc/cron.d/risacaph-billing
 
 # Persist credentials for reference
-cat > /root/phpnuxbill.creds <<CREDS
-PHPNuxBill installation
+cat > /root/risacaph-billing.creds <<CREDS
+RisacaPh-Billing installation
 =======================
 Admin login : admin / admin   (change this immediately)
 Database    : ${DB_NAME}
@@ -275,16 +275,16 @@ DB user     : ${DB_USER}
 DB password : ${DB_PASS}
 Web root    : ${WEBROOT}
 CREDS
-chmod 600 /root/phpnuxbill.creds
+chmod 600 /root/risacaph-billing.creds
 
 say "Done inside container."
 INNEREOF
 } > "$INNER"
 
 msg "Provisioning inside the container (this can take a few minutes)..."
-pct push "$CTID" "$INNER" /root/phpnuxbill-inner.sh >/dev/null
-pct exec "$CTID" -- bash /root/phpnuxbill-inner.sh
-pct exec "$CTID" -- rm -f /root/phpnuxbill-inner.sh
+pct push "$CTID" "$INNER" /root/risacaph-billing-inner.sh >/dev/null
+pct exec "$CTID" -- bash /root/risacaph-billing-inner.sh
+pct exec "$CTID" -- rm -f /root/risacaph-billing-inner.sh
 
 # ---------------------------------------------------------------------------
 # Summary
@@ -293,7 +293,7 @@ IP="$(pct exec "$CTID" -- bash -lc "hostname -I | awk '{print \$1}'" 2>/dev/null
 
 echo
 echo "${GRN}============================================================${CLR}"
-echo "${GRN} PHPNuxBill is installed in LXC ${CTID} (${CT_HOSTNAME})${CLR}"
+echo "${GRN} RisacaPh-Billing is installed in LXC ${CTID} (${CT_HOSTNAME})${CLR}"
 echo "${GRN}============================================================${CLR}"
 echo "  Admin portal : http://${IP:-<container-ip>}/admin"
 echo "  Login        : admin / admin   ${YLW}(change immediately)${CLR}"
@@ -303,7 +303,7 @@ echo "  DB user      : ${DB_USER}"
 echo "  DB password  : ${DB_PASS}"
 echo "  Container root password : ${CT_PASSWORD}"
 echo
-echo "  Credentials also saved in the container at /root/phpnuxbill.creds"
+echo "  Credentials also saved in the container at /root/risacaph-billing.creds"
 echo "  Enter the container with: ${BLU}pct enter ${CTID}${CLR}"
 echo
 warn "First steps: log in, change the admin password, then add your router"

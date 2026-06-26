@@ -47,7 +47,7 @@ Source: "..\windows-install.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 [INI]
 Filename: "{app}\RisacaPh-Billing Admin.url"; Section: "InternetShortcut"; \
-    Key: "URL"; String: "http://localhost/phpnuxbill/admin"
+    Key: "URL"; String: "http://localhost/risacaph-billing/admin"
 
 [Icons]
 Name: "{group}\RisacaPh-Billing Admin"; Filename: "{app}\RisacaPh-Billing Admin.url"
@@ -62,4 +62,4 @@ Filename: "powershell.exe"; \
     Flags: runascurrentuser waituntilterminated
 
 [Messages]
-FinishedLabel=RisacaPh-Billing has been installed. Open http://localhost/phpnuxbill/admin and sign in with admin / admin, then change the password immediately.
+FinishedLabel=RisacaPh-Billing has been installed. Open http://localhost/risacaph-billing/admin and sign in with admin / admin, then change the password immediately.

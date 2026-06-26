@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-    PHPNuxBill Windows installer (XAMPP-based).
+    RisacaPh-Billing Windows installer (XAMPP-based).
 
 .DESCRIPTION
-    Installs PHPNuxBill on Windows using XAMPP (Apache + MariaDB + PHP 8.2).
+    Installs RisacaPh-Billing on Windows using XAMPP (Apache + MariaDB + PHP 8.2).
     It deploys the app into XAMPP's htdocs, creates the database and a dedicated
     DB user, writes config.php, registers Scheduled Tasks for the billing cron,
     and finishes with a working admin login (admin / admin).
@@ -25,10 +25,10 @@
 param(
     [string]$XamppDir    = 'C:\xampp',
     [string]$XamppUrl    = 'https://sourceforge.net/projects/xampp/files/XAMPP%20Windows/8.2.12/xampp-windows-x64-8.2.12-0-VS16-installer.exe/download',
-    [string]$AppName     = 'phpnuxbill',
+    [string]$AppName     = 'risacaph-billing',
     [string]$RepoZipUrl  = 'https://github.com/risacaph/phpnuxbillorig/archive/refs/heads/master.zip',
-    [string]$DbName      = 'phpnuxbill',
-    [string]$DbUser      = 'phpnuxbill',
+    [string]$DbName      = 'risacaph_billing',
+    [string]$DbUser      = 'risacaph_billing',
     [string]$DbPass      = '',          # generated if empty
     [int]   $CronMinutes = 5
 )
@@ -113,7 +113,7 @@ Ok "MySQL is up"
 # ---------------------------------------------------------------------------
 if (Test-Path $appDir) { Die "$appDir already exists - remove it or pass a different -AppName." }
 
-Info "Downloading PHPNuxBill..."
+Info "Downloading RisacaPh-Billing..."
 $zip  = Join-Path $env:TEMP 'phpnuxbill.zip'
 $xdir = Join-Path $env:TEMP 'phpnuxbill-extract'
 Invoke-WebRequest -Uri $RepoZipUrl -OutFile $zip -UseBasicParsing
@@ -187,14 +187,14 @@ Info "Registering scheduled tasks..."
 try {
     $cronAction = New-ScheduledTaskAction -Execute $php -Argument "`"$appDir\system\cron.php`""
     $cronTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes $CronMinutes)
-    Register-ScheduledTask -TaskName 'PHPNuxBill Cron' -Action $cronAction -Trigger $cronTrigger `
+    Register-ScheduledTask -TaskName 'RisacaPh-Billing Cron' -Action $cronAction -Trigger $cronTrigger `
         -User 'SYSTEM' -RunLevel Highest -Force | Out-Null
 
     $remAction = New-ScheduledTaskAction -Execute $php -Argument "`"$appDir\system\cron_reminder.php`""
     $remTrigger = New-ScheduledTaskTrigger -Daily -At 8am
-    Register-ScheduledTask -TaskName 'PHPNuxBill Reminder' -Action $remAction -Trigger $remTrigger `
+    Register-ScheduledTask -TaskName 'RisacaPh-Billing Reminder' -Action $remAction -Trigger $remTrigger `
         -User 'SYSTEM' -RunLevel Highest -Force | Out-Null
-    Ok "Scheduled tasks 'PHPNuxBill Cron' (every $CronMinutes min) and 'PHPNuxBill Reminder' (daily 08:00)"
+    Ok "Scheduled tasks 'RisacaPh-Billing Cron' (every $CronMinutes min) and 'RisacaPh-Billing Reminder' (daily 08:00)"
 } catch {
     Warn "Could not register scheduled tasks: $($_.Exception.Message)"
     Warn "Create them manually to run: $php <path>\system\cron.php"
@@ -204,7 +204,7 @@ try {
 # Credentials + summary
 # ---------------------------------------------------------------------------
 $creds = @"
-PHPNuxBill installation
+RisacaPh-Billing installation
 =======================
 Admin login : admin / admin   (change this immediately)
 URL         : http://localhost/$AppName/admin
@@ -217,7 +217,7 @@ Set-Content -Path (Join-Path $appDir 'INSTALL-CREDENTIALS.txt') -Value $creds -E
 
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Green
-Write-Host " PHPNuxBill is installed" -ForegroundColor Green
+Write-Host " RisacaPh-Billing is installed" -ForegroundColor Green
 Write-Host "============================================================" -ForegroundColor Green
 Write-Host "  Admin portal : http://localhost/$AppName/admin"
 Write-Host "  Login        : admin / admin   (change immediately)" -ForegroundColor Yellow
