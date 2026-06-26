@@ -83,7 +83,7 @@
     <div class="wrapper">
         <header class="main-header">
             <a href="{Text::url('dashboard')}" class="logo">
-                <span class="logo-mini"><b>N</b>uX</span>
+                <span class="logo-mini"><b>R</b>Ph</span>
                 <span class="logo-lg">{$_c['CompanyName']}</span>
             </a>
             <nav class="navbar navbar-static-top">
@@ -411,7 +411,7 @@
                             </a>
                             <ul class="treeview-menu">
                                 <li {if $_routes[1] eq 'list' }class="active" {/if}><a
-                                        href="{Text::url('logs/phpnuxbill')}">PhpNuxBill</a></li>
+                                        href="{Text::url('logs/phpnuxbill')}">RisacaPh-Billing</a></li>
                                 {if $_c['radius_enable']}
                                     <li {if $_routes[1] eq 'radius' }class="active" {/if}><a
                                             href="{Text::url('logs/radius')}">Radius</a>

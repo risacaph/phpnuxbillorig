@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>Error - PHPNuxBill</title>
+    <title>Error - RisacaPh-Billing</title>
     <link rel="shortcut icon" href="{$app_url}/ui/ui/images/logo.png" type="image/x-icon" />
 
     <link rel="stylesheet" href="{$app_url}/ui/ui/styles/bootstrap.min.css">

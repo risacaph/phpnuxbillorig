@@ -1,8 +1,10 @@
 [![ReadMeSupportPalestine](https://raw.githubusercontent.com/Safouene1/support-palestine-banner/master/banner-project.svg)](https://s.id/standwithpalestine)
 
-# PHPNuxBill - PHP Mikrotik Billing
+# RisacaPh-Billing — PHP Mikrotik Billing
 
-![PHPNuxBill](install/img/logo.png)
+> Mikrotik hotspot &amp; PPPoE billing — based on [PHPNuxBill](https://github.com/hotspotbilling/phpnuxbill) (MIT).
+
+![RisacaPh-Billing](install/img/logo.png)
 
 ## Feature
 
