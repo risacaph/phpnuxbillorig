@@ -33,7 +33,7 @@ You can download payment gateway and Plugin from Plugin Manager
 
 ## System Requirements
 
-Most current web servers with PHP & MySQL installed will be capable of running PHPNuxBill
+Most current web servers with PHP & MySQL installed will be capable of running RisacaPh-Billing
 
 Minimum Requirements
 
@@ -63,15 +63,15 @@ installs the full stack (Apache + MariaDB + PHP 8.2), the database, cron jobs an
 the application, finishing with a working admin login:
 
 ```bash
-wget -O phpnuxbill.sh https://raw.githubusercontent.com/risacaph/phpnuxbillorig/master/proxmox-install.sh
-bash phpnuxbill.sh
+wget -O risacaph-billing.sh https://raw.githubusercontent.com/risacaph/phpnuxbillorig/master/proxmox-install.sh
+bash risacaph-billing.sh
 ```
 
 Defaults are overridable via environment variables, e.g.:
 
 ```bash
 CTID=120 CT_HOSTNAME=billing DISK_GB=12 RAM_MB=2048 \
-NET=192.168.1.50/24 GATEWAY=192.168.1.1 bash phpnuxbill.sh
+NET=192.168.1.50/24 GATEWAY=192.168.1.1 bash risacaph-billing.sh
 ```
 
 ### Quick install — Windows

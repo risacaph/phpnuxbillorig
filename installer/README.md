@@ -7,7 +7,7 @@ This folder builds a Windows setup executable
 The installer is a **bootstrapper**: it bundles `../windows-install.ps1` and runs
 it during setup. That script installs **XAMPP** (Apache + MariaDB + PHP), deploys
 the app into `htdocs`, creates the database, writes `config.php`, and registers
-the billing cron Scheduled Tasks. It finishes at `http://localhost/phpnuxbill/admin`
+the billing cron Scheduled Tasks. It finishes at `http://localhost/risacaph-billing/admin`
 with the default login **admin / admin** (change it immediately).
 
 ## Get the `.exe`
