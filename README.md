@@ -74,19 +74,23 @@ CTID=120 CT_HOSTNAME=billing DISK_GB=12 RAM_MB=2048 \
 NET=192.168.1.50/24 GATEWAY=192.168.1.1 bash phpnuxbill.sh
 ```
 
-### Quick install — Windows (XAMPP)
+### Quick install — Windows
 
-Run from an **elevated PowerShell** prompt. It installs XAMPP (Apache + MariaDB +
-PHP), deploys the app, creates the database, and registers the cron Scheduled
-Tasks:
+**Installer (`.exe`)** — download **`RisacaPh-Billing-Setup-<version>.exe`** from the
+[Releases page](https://github.com/risacaph/phpnuxbillorig/releases) and run it. The
+wizard installs XAMPP (Apache + MariaDB + PHP), deploys the app, creates the database
+and registers the cron Scheduled Tasks. (The `.exe` is compiled by the *Build Windows
+Installer* GitHub Actions workflow and attached to each tagged release; an on-demand
+build is also downloadable from that workflow run's artifacts.)
+
+**PowerShell script** — alternatively, run from an **elevated PowerShell** prompt:
 
 ```powershell
 Invoke-WebRequest -Uri https://raw.githubusercontent.com/risacaph/phpnuxbillorig/master/windows-install.ps1 -OutFile windows-install.ps1
 powershell -ExecutionPolicy Bypass -File .\windows-install.ps1
 ```
 
-Both installers finish at `/admin` with the default login **admin / admin** —
-change it immediately.
+Both finish at `/admin` with the default login **admin / admin** — change it immediately.
 
 ### Manual installation
 
