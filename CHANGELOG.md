@@ -2,6 +2,19 @@
 
 # CHANGELOG
 
+## 2026.6.26
+
+- Security hardening: installer lockdown, SQL-injection fixes, admin password
+  hashing (bcrypt) with brute-force throttling and session hardening, payment
+  callback + API-secret hygiene, and CSRF protection across admin/customer POSTs.
+- Live "Active Connections" monitor (Hotspot + PPPoE) with search, auto-refresh
+  and one-click disconnect.
+- PoE management: per-router PoE-out status/voltage/current/power, switch ports
+  off / auto-on / forced-on, and power-cycle to reboot a CPE/AP (RouterOS 7.15).
+- Live connection status on the customer detail page with quick disconnect.
+- One-shot installers: `proxmox-install.sh` (Proxmox VE LXC) and
+  `windows-install.ps1` (Windows / XAMPP).
+
 ## 2024.10.23
 
 - Custom Balance admin refill Requested by Javi Tech
