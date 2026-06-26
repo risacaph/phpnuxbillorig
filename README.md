@@ -54,6 +54,40 @@ The problem with windows is hard to set cronjob, better Linux
 
 ## Installation
 
+### Quick install — Proxmox VE (LXC)
+
+Run on a **Proxmox VE host** as root. It creates a Debian 12 LXC container and
+installs the full stack (Apache + MariaDB + PHP 8.2), the database, cron jobs and
+the application, finishing with a working admin login:
+
+```bash
+wget -O phpnuxbill.sh https://raw.githubusercontent.com/risacaph/phpnuxbillorig/master/proxmox-install.sh
+bash phpnuxbill.sh
+```
+
+Defaults are overridable via environment variables, e.g.:
+
+```bash
+CTID=120 CT_HOSTNAME=billing DISK_GB=12 RAM_MB=2048 \
+NET=192.168.1.50/24 GATEWAY=192.168.1.1 bash phpnuxbill.sh
+```
+
+### Quick install — Windows (XAMPP)
+
+Run from an **elevated PowerShell** prompt. It installs XAMPP (Apache + MariaDB +
+PHP), deploys the app, creates the database, and registers the cron Scheduled
+Tasks:
+
+```powershell
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/risacaph/phpnuxbillorig/master/windows-install.ps1 -OutFile windows-install.ps1
+powershell -ExecutionPolicy Bypass -File .\windows-install.ps1
+```
+
+Both installers finish at `/admin` with the default login **admin / admin** —
+change it immediately.
+
+### Manual installation
+
 [Installation instructions](https://github.com/hotspotbilling/phpnuxbill/wiki)
 
 ## Freeradius
